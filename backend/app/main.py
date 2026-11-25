@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from . import benchmark, metrics
-from .crypto import HEADER_SIZE, InvalidVault, decrypt_bytes, encrypt_bytes, tamper_bytes
+from .crypto import HEADER_SIZE, ID_CIPHERS, InvalidVault, decrypt_bytes, encrypt_bytes, tamper_bytes
 
 app = FastAPI(title="SecureVault API")
 app.add_middleware(CORSMiddleware, allow_origins=[
@@ -118,16 +118,17 @@ async def decrypt(file: UploadFile = File(...), password: str = Form(...)):
 async def tamper(file: UploadFile = File(...)):
     data = await read_upload(file)
     started = time.perf_counter()
+    cipher_name = ID_CIPHERS.get(data[5], "unknown") if len(data) > 5 else "unknown"
     try:
         altered, index = tamper_bytes(data)
         original_name = safe_filename(file.filename or "file.vault")
         stem = original_name[:-6] if original_name.lower().endswith(".vault") else original_name
         filename = f"{stem}-tampered.vault"
         file_id = save_output(altered, filename)
-        metrics.log("tamper", "unknown", len(data), (time.perf_counter() - started) * 1000, "ok")
+        metrics.log("tamper", cipher_name, len(data), (time.perf_counter() - started) * 1000, "ok")
         return {"file_id": file_id, "filename": filename, "flipped_byte_index": index}
     except InvalidVault as exc:
-        metrics.log("tamper", "unknown", len(data), (time.perf_counter() - started) * 1000, "error")
+        metrics.log("tamper", cipher_name, len(data), (time.perf_counter() - started) * 1000, "error")
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
