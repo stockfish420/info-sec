@@ -7,6 +7,42 @@ import { encryptFile, decryptFile, downloadFile } from "@/lib/api"
 import type { DecryptResult, EncryptResult } from "@/lib/types"
 import { formatBytes, saveDownload } from "@/lib/csv"
 
+function EncryptionSnapshot({ result }: { result: EncryptResult }) {
+  return <section aria-label="Encryption snapshot" className="mt-6 rounded-lg border bg-card p-4">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h4 className="font-medium">Encryption snapshot</h4>
+        <p className="mt-1 text-sm text-muted-foreground">The completed file encryption flow.</p>
+      </div>
+      <span className="rounded-full border px-2.5 py-1 text-xs font-medium">Complete</span>
+    </div>
+    <ol aria-label="Encryption steps" className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-stretch">
+      <li className="rounded-md border p-3">
+        <p className="text-xs text-muted-foreground">1 · Input</p>
+        <p className="mt-1 font-medium">File selected</p>
+        <p className="mt-1 text-sm text-muted-foreground">{formatBytes(result.input_bytes)}</p>
+      </li>
+      <li aria-hidden="true" className="hidden items-center text-muted-foreground sm:flex">→</li>
+      <li className="rounded-md border p-3">
+        <p className="text-xs text-muted-foreground">2 · Key derivation</p>
+        <p className="mt-1 font-medium">scrypt</p>
+        <p className="mt-1 text-sm text-muted-foreground">16-byte salt · {result.kdf_ms.toFixed(2)} ms</p>
+      </li>
+      <li aria-hidden="true" className="hidden items-center text-muted-foreground sm:flex">→</li>
+      <li className="rounded-md border p-3">
+        <p className="text-xs text-muted-foreground">3 · Encryption</p>
+        <p className="mt-1 font-medium">{result.cipher}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{result.cipher_ms.toFixed(2)} ms</p>
+      </li>
+    </ol>
+    <div className="mt-3 rounded-md bg-muted/60 p-3">
+      <p className="text-xs font-medium">Final .vault snapshot</p>
+      <p className="mt-1 break-all text-sm">{result.filename} · {formatBytes(result.output_bytes)}</p>
+      <p className="mt-1 text-xs text-muted-foreground">SVLT1 header · cipher id · salt · nonce · ciphertext · 16-byte authentication tag</p>
+    </div>
+  </section>
+}
+
 export function VaultTab() {
   const [file, setFile] = useState<File | null>(null); const [password, setPassword] = useState(""); const [cipher, setCipher] = useState("AES-256-GCM")
   const [busy, setBusy] = useState(""); const [error, setError] = useState(""); const [result, setResult] = useState<EncryptResult | DecryptResult | null>(null)
@@ -18,6 +54,7 @@ export function VaultTab() {
   const succeeded = result && ("status" in result ? result.status === "ok" : true)
   const fileId = result && ("file_id" in result ? result.file_id : undefined)
   const filename = result && ("filename" in result ? result.filename : undefined)
+  const encryptionResult = result && !("status" in result) ? result : null
   return <section className="max-w-2xl">
     <h2 className="text-xl font-semibold">Vault</h2><p className="mt-1 text-sm text-muted-foreground">Encrypt or decrypt a file using a password-derived key.</p>
     <div className="mt-6 flex flex-col gap-4">
@@ -27,6 +64,6 @@ export function VaultTab() {
       <div className="flex flex-wrap gap-2"><Button onClick={() => run("encrypt")} disabled={!!busy}>{busy === "encrypt" ? "Encrypting…" : "Encrypt"}</Button><Button variant="outline" onClick={() => run("decrypt")} disabled={!!busy}>{busy === "decrypt" ? "Decrypting…" : "Decrypt"}</Button></div>
     </div>
     {error && <p className="mt-4 text-sm text-destructive" role="alert">{error}</p>}
-    {result && <div className="mt-7 border-t pt-5"><h3 className="font-medium">Result</h3>{"status" in result && result.status === "auth_failed" ? <p className="mt-3 text-sm text-red-600">Authentication failed: wrong password or file was modified.</p> : <><p className="mt-3 text-sm">Status: {succeeded ? "Success" : "Failed"}</p><dl className="mt-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-3">{"cipher" in result && <><dt className="text-muted-foreground">Cipher</dt><dd>{result.cipher}</dd></>}{[["Input size", formatBytes(result.input_bytes)], ["Output size", "output_bytes" in result && result.output_bytes !== undefined ? formatBytes(result.output_bytes) : "—"], ["KDF time", `${result.kdf_ms.toFixed(2)} ms`], ["Cipher time", `${result.cipher_ms.toFixed(2)} ms`], ["Total time", `${result.total_ms.toFixed(2)} ms`], ["Throughput", "throughput_mb_s" in result && result.throughput_mb_s !== undefined ? `${result.throughput_mb_s.toFixed(2)} MB/s` : "—"]].map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-0.5">{value}</dd></div>)}</dl>{fileId && <Button className="mt-4" variant="link" onClick={() => saveDownload(fileId, filename || "securevault-download", downloadFile)}>Download {filename || "file"}</Button>}</>}</div>}
+    {result && <div className="mt-7 border-t pt-5"><h3 className="font-medium">Result</h3>{"status" in result && result.status === "auth_failed" ? <p className="mt-3 text-sm text-red-600">Authentication failed: wrong password or file was modified.</p> : <><p className="mt-3 text-sm">Status: {succeeded ? "Success" : "Failed"}</p><dl className="mt-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-3">{"cipher" in result && <><dt className="text-muted-foreground">Cipher</dt><dd>{result.cipher}</dd></>}{[["Input size", formatBytes(result.input_bytes)], ["Output size", "output_bytes" in result && result.output_bytes !== undefined ? formatBytes(result.output_bytes) : "—"], ["KDF time", `${result.kdf_ms.toFixed(2)} ms`], ["Cipher time", `${result.cipher_ms.toFixed(2)} ms`], ["Total time", `${result.total_ms.toFixed(2)} ms`], ["Throughput", "throughput_mb_s" in result && result.throughput_mb_s !== undefined ? `${result.throughput_mb_s.toFixed(2)} MB/s` : "—"]].map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-0.5">{value}</dd></div>)}</dl>{fileId && <Button className="mt-4" variant="link" onClick={() => saveDownload(fileId, filename || "securevault-download", downloadFile)}>Download {filename || "file"}</Button>}{encryptionResult && <EncryptionSnapshot result={encryptionResult} />}</>}</div>}
   </section>
 }
