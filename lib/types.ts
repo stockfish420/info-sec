@@ -16,6 +16,12 @@ export type KdfResult = { sha256_guesses_per_sec: number; scrypt_guesses_per_sec
 export type MetricEntry = { id: string; timestamp: string; operation: string; cipher: string; size_bytes: number; duration_ms: number; status: string }
 export type MetricsResult = { summary: { total_ops: number; avg_encrypt_ms: number; avg_decrypt_ms: number; auth_failures: number }; entries: MetricEntry[] }
 export type HealthResult = { status: "ok" }
+export type SystemInfoResult = {
+  system: string; architecture: string; processor: string
+  logical_cpu_count: number | null; effective_cpu_cores: number | null; cpu_source: string
+  memory_total_mb: number | null; memory_available_mb: number | null; memory_source: string
+  scrypt_ms: number; scrypt_memory_mb: number; runtime: string
+}
 export type CipherChoice = "AES-256-GCM" | "ChaCha20-Poly1305"
 export type DownloadResult = { blob: Blob; filename: string }
 export type BenchmarkRequest = { ciphers: string[]; sizes_kb: number[]; runs: number }

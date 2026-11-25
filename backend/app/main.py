@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from . import benchmark, metrics
+from . import benchmark, metrics, system_info
 from .crypto import HEADER_SIZE, ID_CIPHERS, InvalidVault, decrypt_bytes, encrypt_bytes, tamper_bytes
 
 app = FastAPI(title="SecureVault API")
@@ -62,6 +62,11 @@ def rate(size: int, cipher_ms: float) -> float:
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/system-info")
+def system_info_endpoint():
+    return system_info.detect_system_info()
 
 
 @app.post("/api/encrypt")

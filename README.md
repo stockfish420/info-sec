@@ -34,6 +34,10 @@ pip install -r requirements.txt
 pytest
 ```
 
+## System-aware benchmark recommendation
+
+The Benchmark tab reads the API host's OS, processor, effective CPU cores, visible memory, and a measured scrypt cost from `GET /api/system-info`. It then uses benchmark timings from that backend and compares a working-memory estimate (the larger of about 3× the file size or the file size plus scrypt's ≈32 MB workspace) with available memory. An optional total-time limit can be set in the tab; that estimate includes the detected scrypt cost. The fastest measured authenticated cipher that meets the limits is recommended; DES-CBC is never recommended. In Vercel, the detected machine is the Vercel API runtime, not the browser or a connected IoT device. Container limits are reported when available; otherwise the app asks for a manual memory budget rather than treating host-visible memory as a runtime limit.
+
 ## Manual test checklist
 
 1. Encrypt a small file in Vault and download the `.vault` output.

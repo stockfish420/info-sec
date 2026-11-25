@@ -99,3 +99,15 @@ def test_invalid_header_is_bad_request(setup_api):
     with pytest.raises(HTTPException) as exc:
         invoke(main.decrypt(upload(b"not a vault"), "pass"))
     assert exc.value.status_code == 400
+
+
+def test_system_info_reports_runtime_resources():
+    info = main.system_info_endpoint()
+    assert info["system"]
+    assert info["architecture"]
+    assert info["processor"]
+    assert info["logical_cpu_count"] >= 1
+    assert info["effective_cpu_cores"] > 0
+    assert info["cpu_source"]
+    assert info["memory_source"]
+    assert info["runtime"]

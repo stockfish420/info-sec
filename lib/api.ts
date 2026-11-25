@@ -1,4 +1,4 @@
-import type { BenchmarkRequest, BenchmarkResult, DecryptResult, DownloadResult, EncryptResult, HealthResult, KdfResult, MetricsResult, TamperResult } from "@/lib/types"
+import type { BenchmarkRequest, BenchmarkResult, DecryptResult, DownloadResult, EncryptResult, HealthResult, KdfResult, MetricsResult, SystemInfoResult, TamperResult } from "@/lib/types"
 
 const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").replace(/\/$/, "")
 export const isMockMode = (process.env.NEXT_PUBLIC_USE_MOCK ?? "true") === "true"
@@ -20,6 +20,13 @@ function formData(file: File, fields: Record<string, string> = {}) {
 export async function checkHealth(): Promise<HealthResult> {
   if (isMockMode) { await delay(); return { status: "ok" } }
   return request("/api/health")
+}
+export async function getSystemInfo(): Promise<SystemInfoResult> {
+  if (isMockMode) {
+    await delay()
+    return { system: "Mock mode", architecture: "Browser", processor: "Not detected", logical_cpu_count: null, effective_cpu_cores: null, cpu_source: "mock mode", memory_total_mb: null, memory_available_mb: null, memory_source: "not detected in mock mode", scrypt_ms: 0, scrypt_memory_mb: 32, runtime: "Mock API" }
+  }
+  return request("/api/system-info")
 }
 export async function encryptFile(file: File, password: string, cipher: string): Promise<EncryptResult> {
   if (isMockMode) { await delay(); const input = file.size; return { file_id: mockId(), filename: `${file.name}.vault`, cipher, input_bytes: input, output_bytes: input + 64, kdf_ms: 82.4, cipher_ms: 3.8, total_ms: 86.2, throughput_mb_s: Number((input / 1048576 / .0038).toFixed(2)) } }
