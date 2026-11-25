@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import sqlite3
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-DB_PATH = Path(__file__).resolve().parents[1] / "data" / "metrics.db"
+DB_PATH = (Path(tempfile.gettempdir()) / "securevault" / "metrics.db"
+           if os.getenv("VERCEL") else Path(__file__).resolve().parents[1] / "data" / "metrics.db")
 
 
 def connect() -> sqlite3.Connection:
