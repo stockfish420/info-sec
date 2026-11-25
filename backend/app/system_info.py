@@ -150,7 +150,7 @@ def _processor_name() -> str:
         if cpuinfo:
             for line in cpuinfo.splitlines():
                 key, separator, value = line.partition(":")
-                if separator and key.strip().lower() in {"model name", "hardware", "processor"} and value.strip():
+                if separator and key.strip().lower() in {"model name", "hardware", "processor"} and value.strip() and not value.strip().isdigit():
                     return value.strip()
     if sys.platform == "win32":
         try:
@@ -162,7 +162,7 @@ def _processor_name() -> str:
                     return name.strip()
         except (OSError, ImportError):
             pass
-    return platform.processor() or platform.machine() or "Unknown"
+    return platform.processor() or "Not exposed by runtime"
 
 
 def detect_system_info() -> dict:
@@ -173,6 +173,9 @@ def detect_system_info() -> dict:
     derive_key("securevault-system-probe", os.urandom(16))
     scrypt_ms = (time.perf_counter() - kdf_started) * 1000
     is_vercel = bool(os.getenv("VERCEL"))
+    if is_vercel and cpu_source == "operating system":
+        effective_cpus = None
+        cpu_source = "Vercel allocation unavailable; OS-visible count"
     if container_total is not None:
         total_memory = min(host_total, container_total) if host_total else container_total
         available_memory = min(host_available, container_available) if host_available is not None else container_available
@@ -180,8 +183,6 @@ def detect_system_info() -> dict:
     elif is_vercel:
         total_memory, available_memory = host_total, None
         memory_source = "Vercel allocation unavailable; host memory only"
-        if cpu_source == "operating system":
-            cpu_source = "Vercel allocation unavailable; OS-visible count"
     else:
         total_memory, available_memory = host_total, host_available
         memory_source = "operating system" if host_total is not None else "unavailable"
